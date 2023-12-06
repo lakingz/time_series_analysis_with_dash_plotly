@@ -15,8 +15,11 @@ dataset["Datetime"] = pd.to_datetime(dataset["Datetime"])
 data_test = pd.DataFrame(pd.date_range(dataset['Datetime'].iloc[-1], dataset['Datetime'].iloc[-1] + (dataset['Datetime'].iloc[-1] - dataset['Datetime'].iloc[0]), freq='H'), columns = ['Datetime'])
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+#
+# app framework
+#
 app.layout = dbc.Container([
-        html.H1('Dash with scikit-Learn', style={'textAlign': 'center'}),
+        html.H1('Consumption prediction with visualization', style={'textAlign': 'center'}),
         dbc.Row([
             dbc.Col([
                 html.Div("Select Test Size %:"),
@@ -49,6 +52,7 @@ app.layout = dbc.Container([
                 dcc.Graph(id='graph-with-prediction')
             ], width=6)
         ]),
+        html.H1('Try out your own data set', style={'textAlign': 'center'}),
         dcc.Upload(
             id='upload-data',
             children=html.Div([
@@ -70,76 +74,11 @@ app.layout = dbc.Container([
         ),
         html.Div(id='output-div'),
         html.Div(id='output-datatable'),
+        html.Div(id='prediction-result')
     ])
-
-
-def parse_contents(contents, filename, date):
-    content_type, content_string = contents.split(',')
-
-    decoded = base64.b64decode(content_string)
-    try:
-        if 'csv' in filename:
-            # Assume that the user uploaded a CSV file
-            df = pd.read_csv(
-                io.StringIO(decoded.decode('utf-8')))
-        elif 'xls' in filename:
-            # Assume that the user uploaded an excel file
-            df = pd.read_excel(io.BytesIO(decoded))
-    except Exception as e:
-        print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
-    print(df.shape)
-    return html.Div([
-        html.H5(filename),
-        html.H6(datetime.datetime.fromtimestamp(date)),
-        html.P("Select data time column"),
-        dcc.Dropdown(id='xaxis-data',
-                     options=[{'label': x, 'value': x} for x in df.columns]),
-        html.P("Select column to prediction"),
-        dcc.Dropdown(id='yaxis-data',
-                     options=[{'label': x, 'value': x} for x in df.columns]),
-        html.Button(id="submit-button", children="start prediction"),
-        html.Hr(),
-
-        dbc.Col([
-            html.Div("Select Test Size %:"),
-            dcc.Input(value=20, type='number', debounce=True, id='test-size-import-data', min=1, max=100, step=1)
-        ], width=3),
-        dbc.Col([
-            html.Div("Select RandomForest n_estimators:"),
-            dcc.Input(value=10, type='number', debounce=True, id='nestimator-size-import-data', min=10, max=500, step=1)
-        ], width=3),
-        dbc.Col([
-            html.Div("Accuracy Score:"),
-            html.Div(id='training accuracy-import-data', style={'color': 'blue'}, children="")
-        ], width=3),
-
-        dash_table.DataTable(
-            data=df.to_dict('records'),
-            columns=[{'name': i, 'id': i} for i in df.columns],
-            page_size=15
-        ),
-        dcc.Store(id='stored-data', data=df.to_dict('records')),
-
-        html.Hr(),  # horizontal line
-
-        dbc.Row([
-            dbc.Col([
-                dcc.Graph(id='graph-with-prediction-import-data')
-            ], width=6)
-        ]),
-
-        # For debugging, display the raw contents provided by the web browser
-        html.Div('Raw Content'),
-        html.Pre(contents[0:200] + '...', style={
-            'whiteSpace': 'pre-wrap',
-            'wordBreak': 'break-all'
-        })
-])
-
-
+#
+# demo analysis
+#
 @callback(Output('graph-with-prediction', 'figure'),
           Output('training accuracy', 'children'),
     Input('test-size', 'value'),
@@ -179,6 +118,71 @@ def create_features(df, label=None):
         y = df[label]
         return X, y
     return X
+#
+# data uploead & display
+#
+def parse_contents(contents, filename, date):
+    content_type, content_string = contents.split(',')
+
+    decoded = base64.b64decode(content_string)
+    try:
+        if 'csv' in filename:
+            # Assume that the user uploaded a CSV file
+            df = pd.read_csv(
+                io.StringIO(decoded.decode('utf-8')))
+        elif 'xls' in filename:
+            # Assume that the user uploaded an excel file
+            df = pd.read_excel(io.BytesIO(decoded))
+    except Exception as e:
+        print(e)
+        return html.Div([
+            'There was an error processing this file.'
+        ])
+    return html.Div([
+        html.H5(filename),
+        html.H6(datetime.datetime.fromtimestamp(date)),
+        html.P("Select data time column"),
+        dcc.Dropdown(id='xaxis-data',
+                     options=[{'label': x, 'value': x} for x in df.columns]),
+        html.P("Select column to prediction"),
+        dcc.Dropdown(id='yaxis-data',
+                     options=[{'label': x, 'value': x} for x in df.columns]),
+        html.Button(id="submit-button", children="start prediction"),
+        html.Hr(),
+
+        dbc.Col([
+            html.Div("Select Test Size %:"),
+            dcc.Input(value=20, type='number', debounce=True, id='test-size-import-data', min=1, max=100, step=1)
+        ], width=3),
+        dbc.Col([
+            html.Div("Select RandomForest n_estimators:"),
+            dcc.Input(value=10, type='number', debounce=True, id='nestimator-size-import-data', min=10, max=500, step=1)
+        ], width=3),
+        dbc.Col([
+            html.Div("Accuracy Score:"),
+            html.Div(id='training accuracy-import-data', style={'color': 'blue'}, children="")
+        ], width=3),
+
+        dash_table.DataTable(
+            data=df.to_dict('records'),
+            columns=[{'name': i, 'id': i} for i in df.columns],
+            page_size=15
+        ),
+        dcc.Store(id='stored-data', data=df.to_dict('records')),
+        dbc.Row([
+            dbc.Col([
+                dcc.Graph(id='graph-with-prediction-import-data')
+            ], width=6)
+        ]),
+        html.Hr(),  # horizontal line
+
+        # For debugging, display the raw contents provided by the web browser
+        html.Div('Raw Content'),
+        html.Pre(contents[0:200] + '...', style={
+            'whiteSpace': 'pre-wrap',
+            'wordBreak': 'break-all'
+        })
+])
 
 @callback(Output('output-datatable', 'children'),
               Input('upload-data', 'contents'),
@@ -190,7 +194,9 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
             parse_contents(c, n, d) for c, n, d in
             zip(list_of_contents, list_of_names, list_of_dates)]
         return children
-
+#
+# prediction & display
+#
 @app.callback(Output('graph-with-prediction-import-data', 'figure'),
               Output('training accuracy-import-data', 'children'),
               Input('submit-button', 'n_clicks'),
@@ -200,16 +206,15 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
               State('xaxis-data', 'value'),
               State('yaxis-data', 'value'))
 def make_graphs(n, testsize_import_data, n_estimator_import_data, import_data_raw, x_data, y_data):
-    print(n)
     if n is None:
-        return None
+        return no_update
     import_data = pd.DataFrame(import_data_raw)
     import_data = import_data[[x_data, y_data]].copy()
     import_data_tag = ['Datetime', y_data]
     import_data.columns = import_data_tag
     import_data["Datetime"] = pd.to_datetime(import_data["Datetime"])
     import_data_test = pd.DataFrame(pd.date_range(import_data['Datetime'].iloc[-1], import_data['Datetime'].iloc[-1] + (
-                import_data['Datetime'].iloc[-1] - import_data['Datetime'].iloc[0]), freq='H'), columns=['Datetime'])
+            import_data['Datetime'].iloc[-1] - import_data['Datetime'].iloc[0]), freq='H'), columns=['Datetime'])
 
     # Train and Test
     X_train, y_train = create_features(import_data, label=import_data_tag[-1])
@@ -217,8 +222,7 @@ def make_graphs(n, testsize_import_data, n_estimator_import_data, import_data_ra
 
     test_size = round(testsize_import_data / 100 * dataset.shape[0])
     reg = xgb.XGBRegressor(n_estimators=n_estimator_import_data)
-    reg.fit(X_train[0:test_size], y_train[0:test_size],
-            verbose=True)  # Change verbose to True if you want to see it train
+    reg.fit(X_train[0:test_size], y_train[0:test_size],verbose=True)  # Change verbose to True if you want to see it train
     train_accuracy_import_data = round(reg.score(X_train, y_train) * 100, 2)
     y_test = reg.predict(X_test)
     import_data['train/predict'] = 'train'
@@ -226,6 +230,7 @@ def make_graphs(n, testsize_import_data, n_estimator_import_data, import_data_ra
     import_data_test['train/predict'] = 'predict'
     import_data_all = pd.concat([import_data, import_data_test], sort=False)
     fig_import_data = px.line(import_data_all, x='Datetime', y=y_data, color='train/predict')
+
     return fig_import_data, train_accuracy_import_data
 
 if __name__=='__main__':
