@@ -23,11 +23,11 @@ app.layout = dbc.Container([
         dbc.Row([
             dbc.Col([
                 html.Div("Select Test Size %:"),
-                dcc.Input(value=20, type='number', debounce=True, id='test-size', min=1, max=100, step=1)
+                dcc.Input(value=90, type='number', debounce=True, id='test-size', min=1, max=100, step=1)
             ], width=3),
             dbc.Col([
                 html.Div("Select RandomForest n_estimators:"),
-                dcc.Input(value=10, type='number', debounce=True, id='nestimator-size', min=10, max=500, step=1)
+                dcc.Input(value=512, type='number', debounce=True, id='nestimator-size', min=10, max=1000, step=1)
             ], width=3),
             dbc.Col([
                 html.Div("Accuracy Score:"),
@@ -74,7 +74,6 @@ app.layout = dbc.Container([
         ),
         html.Div(id='output-div'),
         html.Div(id='output-datatable'),
-        html.Div(id='prediction-result')
     ])
 #
 # demo analysis
@@ -152,16 +151,18 @@ def parse_contents(contents, filename, date):
 
         dbc.Col([
             html.Div("Select Test Size %:"),
-            dcc.Input(value=20, type='number', debounce=True, id='test-size-import-data', min=1, max=100, step=1)
+            dcc.Input(value=90, type='number', debounce=True, id='test-size-import-data', min=1, max=100, step=1)
         ], width=3),
         dbc.Col([
             html.Div("Select RandomForest n_estimators:"),
-            dcc.Input(value=10, type='number', debounce=True, id='nestimator-size-import-data', min=10, max=500, step=1)
+            dcc.Input(value=512, type='number', debounce=True, id='nestimator-size-import-data', min=10, max=1000, step=1)
         ], width=3),
         dbc.Col([
             html.Div("Accuracy Score:"),
             html.Div(id='training accuracy-import-data', style={'color': 'blue'}, children="")
         ], width=3),
+
+        html.Div(id='graph-with-prediction-import-data'),  # display prediction graph and accuracy score
 
         dash_table.DataTable(
             data=df.to_dict('records'),
@@ -169,11 +170,6 @@ def parse_contents(contents, filename, date):
             page_size=15
         ),
         dcc.Store(id='stored-data', data=df.to_dict('records')),
-        dbc.Row([
-            dbc.Col([
-                dcc.Graph(id='graph-with-prediction-import-data')
-            ], width=6)
-        ]),
         html.Hr(),  # horizontal line
 
         # For debugging, display the raw contents provided by the web browser
@@ -182,7 +178,7 @@ def parse_contents(contents, filename, date):
             'whiteSpace': 'pre-wrap',
             'wordBreak': 'break-all'
         })
-])
+    ])
 
 @callback(Output('output-datatable', 'children'),
               Input('upload-data', 'contents'),
@@ -197,7 +193,7 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
 #
 # prediction & display
 #
-@app.callback(Output('graph-with-prediction-import-data', 'figure'),
+@app.callback(Output('graph-with-prediction-import-data', 'children'),
               Output('training accuracy-import-data', 'children'),
               Input('submit-button', 'n_clicks'),
               State('test-size-import-data', 'value'),
@@ -229,9 +225,13 @@ def make_graphs(n, testsize_import_data, n_estimator_import_data, import_data_ra
     import_data_test[y_data] = y_test
     import_data_test['train/predict'] = 'predict'
     import_data_all = pd.concat([import_data, import_data_test], sort=False)
-    fig_import_data = px.line(import_data_all, x='Datetime', y=y_data, color='train/predict')
+    children = [dbc.Row([
+                    dbc.Col([
+                        dcc.Graph(figure=px.line(import_data_all, x='Datetime', y=y_data, color='train/predict'))
+                    ], width=6)
+               ])]
+    return children, train_accuracy_import_data
 
-    return fig_import_data, train_accuracy_import_data
 
 if __name__=='__main__':
     app.run_server(debug=True)
