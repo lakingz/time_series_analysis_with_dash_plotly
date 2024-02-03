@@ -218,7 +218,7 @@ def make_graphs(n, testsize_import_data, n_estimator_import_data, import_data_ra
 
     test_size = round(testsize_import_data / 100 * dataset.shape[0])
     reg = xgb.XGBRegressor(n_estimators=n_estimator_import_data)
-    reg.fit(X_train[0:test_size], y_train[0:test_size],verbose=True)  # Change verbose to True if you want to see it train
+    reg.fit(X_train[0:test_size], y_train[0:test_size], verbose=False)  # Change verbose to True if you want to see it train
     train_accuracy_import_data = round(reg.score(X_train, y_train) * 100, 2)
     y_test = reg.predict(X_test)
     import_data['train/predict'] = 'train'
